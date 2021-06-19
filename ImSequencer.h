@@ -25,7 +25,7 @@ namespace ImSequencer
       virtual int GetItemCount(int layerIdx) const = 0;
       virtual int GetLayerCount() const = 0;
 
-      virtual void BeginEdit(int /*index*/) {}
+      virtual void BeginEdit(int layerIdx, int frameIdx) {}
       virtual void EndEdit() {}
       virtual int GetItemTypeCount() const { return 0; }
       virtual int GetLayerTypeCount() const { return 0; }

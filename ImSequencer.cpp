@@ -51,8 +51,8 @@ namespace ImSequencer
       static float framePixelWidthTarget = 10.f;
       int legendWidth = 200;
 
-      // static int movingEntry = -1;
-      static int movingEntry = -1;
+      static int movingLayer = -1;
+      static int movingFrame = -1;
       static int movingPos = -1;
       static int movingPart = -1;
       int delLayerIdx = -1;
@@ -166,7 +166,7 @@ namespace ImSequencer
          // current frame top
          ImRect topRect(ImVec2(canvas_pos.x + legendWidth, canvas_pos.y), ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + LayerHeight));
 
-         if (!MovingCurrentFrame && !MovingScrollBar && movingEntry == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
+         if (!MovingCurrentFrame && !MovingScrollBar && movingLayer == -1 && movingFrame == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
          {
             MovingCurrentFrame = true;
          }
@@ -311,7 +311,7 @@ namespace ImSequencer
                size_t localCustomHeight = sequence->GetCustomLayerHeight(i);
                ImVec2 pos = ImVec2(contentMin.x + legendWidth, contentMin.y + LayerHeight * i + 1 + customHeight);
                ImVec2 sz = ImVec2(canvas_size.x + canvas_pos.x, pos.y + LayerHeight - 1 + localCustomHeight);
-               if (!popupOpened && cy >= pos.y && cy < pos.y + (LayerHeight + localCustomHeight) && movingEntry == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
+               if (!popupOpened && cy >= pos.y && cy < pos.y + (LayerHeight + localCustomHeight) && movingLayer == -1 && movingFrame == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
                {
                   col += 0x80201008;
                   pos.x -= legendWidth;
@@ -359,7 +359,7 @@ namespace ImSequencer
                unsigned int frameColor = 0;
                sequence->GetFrame(layerIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor);
                // Calculate frame rect
-               ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + LayerHeight * frameIdx + 1 + customHeight);
+               ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + LayerHeight * layerIdx + 1 + customHeight);
                ImVec2 slotP1(pos.x + *frameStart * framePixelWidth, pos.y + 2);
                ImVec2 slotP2(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + LayerHeight - 2);
                // To the end of the custom height
@@ -376,7 +376,6 @@ namespace ImSequencer
 
                if (ImRect(slotP1, slotP2).Contains(io.MousePos) && io.MouseDoubleClicked[0])
                {
-                  // TODO(KCC): #Frames
                   sequence->DoubleClick(layerIdx, frameIdx);
                }
 
@@ -386,9 +385,9 @@ namespace ImSequencer
                   ImRect(ImVec2(slotP2.x - framePixelWidth / 2, slotP1.y), slotP2),
                   ImRect(slotP1, slotP2),
                };
-               // TODO(KCC): #Frames
+
                const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isLayerSelected ? 0 : 0x202020) };
-               if (movingEntry == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
+               if (movingLayer == -1  && movingFrame == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
                {
                   for (int j = 2; j >= 0; j--)
                   {
@@ -407,73 +406,18 @@ namespace ImSequencer
                         continue;
                      if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
                      {
-                        movingEntry = layerIdx;
+                        movingLayer = layerIdx;
+                        movingFrame = frameIdx;
                         movingPos = cx;
                         movingPart = j + 1;
-                        sequence->BeginEdit(movingEntry);
+                        sequence->BeginEdit(movingLayer, movingFrame);
                         break;
                      }
                   }
                }
             }
-            int* layerStart = nullptr;
-            int* layerEnd = nullptr;
-            unsigned int layerColor = 0;
-            sequence->GetLayer(layerIdx, &layerStart, &layerEnd, NULL, &layerColor);
-            // Calculate frame rect
-            ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + LayerHeight * layerIdx + 1 + customHeight);
-            ImVec2 slotP1(pos.x + *layerStart * framePixelWidth, pos.y + 2);
-            ImVec2 slotP2(pos.x + *layerEnd * framePixelWidth + framePixelWidth, pos.y + LayerHeight - 2);
-            ImVec2 slotP3(pos.x + *layerEnd * framePixelWidth + framePixelWidth, pos.y + LayerHeight - 2 + localCustomHeight);
-            unsigned int slotColor = layerColor | 0xFF000000;
-            unsigned int slotColorHalf = (layerColor & 0xFFFFFF) | 0x40000000;
 
-            if (slotP1.x <= (canvas_size.x + contentMin.x) && slotP2.x >= (contentMin.x + legendWidth))
-            {
-               draw_list->AddRectFilled(slotP1, slotP3, slotColorHalf, 2);
-               draw_list->AddRectFilled(slotP1, slotP2, slotColor, 2);
-            }
-            // if (ImRect(slotP1, slotP2).Contains(io.MousePos) && io.MouseDoubleClicked[0])
-            // {
-            //    // TODO(KCC): #Frames
-            //    sequence->DoubleClick(layerIdx, 0);
-            // }
 
-               ImRect rects[3] = 
-               { 
-                  ImRect(slotP1, ImVec2(slotP1.x + framePixelWidth / 2, slotP2.y)),
-                  ImRect(ImVec2(slotP2.x - framePixelWidth / 2, slotP1.y), slotP2),
-                  ImRect(slotP1, slotP2),
-               };
-               // TODO(KCC): #Frames
-               const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isLayerSelected ? 0 : 0x202020) };
-               if (movingEntry == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
-               {
-                  for (int j = 2; j >= 0; j--)
-                  {
-                     ImRect& rc = rects[j];
-                     if (!rc.Contains(io.MousePos))
-                        continue;
-                     draw_list->AddRectFilled(rc.Min, rc.Max, quadColor[j], 2);
-                  }
-
-                  for (int j = 0; j < ArraySize(rects); j++)
-                  {
-                     ImRect& rc = rects[j];
-                     if (!rc.Contains(io.MousePos))
-                        continue;
-                     if (!ImRect(childFramePos, childFramePos + childFrameSize).Contains(io.MousePos))
-                        continue;
-                     if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
-                     {
-                        movingEntry = layerIdx;
-                        movingPos = cx;
-                        movingPart = j + 1;
-                        sequence->BeginEdit(movingEntry);
-                        break;
-                     }
-                  }
-               }
             // custom draw
             if (localCustomHeight > 0)
             {
@@ -500,16 +444,24 @@ namespace ImSequencer
 
 
          // moving
-         if (/*backgroundRect.Contains(io.MousePos) && */movingEntry >= 0)
+         if (movingLayer >= 0 && movingFrame >= 0)
          {
             ImGui::CaptureMouseFromApp();
             int diffFrame = int((cx - movingPos) / framePixelWidth);
             if (std::abs(diffFrame) > 0)
             {
                int* start, * end;
-               sequence->GetLayer(movingEntry, &start, &end, NULL, NULL);
+               sequence->GetFrame(movingLayer, movingFrame, &start, &end, NULL, NULL);
+
                if (selectedLayer)
-                  *selectedLayer = movingEntry;
+               {
+                  *selectedLayer = movingLayer;
+               }
+               if (selectedFrame)
+               {
+                  *selectedFrame = movingFrame;
+               }
+
                int& l = *start;
                int& r = *end;
                if (movingPart & 1)
@@ -531,26 +483,17 @@ namespace ImSequencer
             if (!io.MouseDown[0])
             {
                // single select
-               if (!diffFrame && movingPart && selectedLayer)
+               if (!diffFrame && movingPart && selectedLayer && selectedFrame)
                {
-                  *selectedLayer = movingEntry;
+                  *selectedLayer = movingLayer;
+                  *selectedFrame = movingFrame;
                   ret = true;
                }
 
-               movingEntry = -1;
+               movingLayer = -1;
+               movingFrame = -1;
                sequence->EndEdit();
             }
-         }
-
-         // cursor
-         if (currentFrame && firstFrame && *currentFrame >= *firstFrame && *currentFrame <= sequence->GetFrameMax())
-         {
-            static const float cursorWidth = 8.f;
-            float cursorOffset = contentMin.x + legendWidth + (*currentFrame - firstFrameUsed) * framePixelWidth + framePixelWidth / 2 - cursorWidth * 0.5f;
-            draw_list->AddLine(ImVec2(cursorOffset, canvas_pos.y), ImVec2(cursorOffset, contentMax.y), 0xA02A2AFF, cursorWidth);
-            char tmps[512];
-            ImFormatString(tmps, IM_ARRAYSIZE(tmps), "%d", *currentFrame);
-            draw_list->AddText(ImVec2(cursorOffset + 10, canvas_pos.y + 2), 0xFF2A2AFF, tmps);
          }
 
          draw_list->PopClipRect();
@@ -586,6 +529,18 @@ namespace ImSequencer
             }
          }
          //
+
+         // Red Current Frame Bar (Shows the current frame)
+         if (currentFrame && firstFrame && *currentFrame >= *firstFrame && *currentFrame <= sequence->GetFrameMax())
+         {
+            static const float cursorWidth = 8.f;
+            float cursorOffset = contentMin.x + legendWidth + (*currentFrame - firstFrameUsed) * framePixelWidth + framePixelWidth / 2 - cursorWidth * 0.5f;
+            draw_list->AddLine(ImVec2(cursorOffset, canvas_pos.y), ImVec2(cursorOffset, contentMax.y), 0xA02A2AFF, cursorWidth);
+            char tmps[512];
+            ImFormatString(tmps, IM_ARRAYSIZE(tmps), "%d", *currentFrame);
+            draw_list->AddText(ImVec2(cursorOffset + 10, canvas_pos.y + 2), 0xFF2A2AFF, tmps);
+         }
+
 
          ImGui::EndChildFrame();
          ImGui::PopStyleColor();
@@ -690,7 +645,7 @@ namespace ImSequencer
                }
                else
                {
-                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingEntry == -1)
+                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingLayer == -1 && movingFrame == -1)
                   {
                      MovingScrollBar = true;
                      panningViewSource = io.MousePos;
