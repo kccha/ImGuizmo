@@ -358,6 +358,11 @@ namespace ImSequencer
                int* frameEnd = nullptr;
                unsigned int frameColor = 0;
                sequence->GetFrame(layerIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor);
+               if (*selectedLayer == layerIdx && *selectedFrame == frameIdx)
+               {
+                  frameColor = frameColor | 0x0000DDDD;
+
+               }
                // Calculate frame rect
                ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + LayerHeight * layerIdx + 1 + customHeight);
                ImVec2 slotP1(pos.x + *frameStart * framePixelWidth, pos.y + 2);
@@ -462,8 +467,8 @@ namespace ImSequencer
                   *selectedFrame = movingFrame;
                }
 
-               int& l = *start;
-               int& r = *end;
+               int l = *start;
+               int r = *end;
                if (movingPart & 1)
                   l += diffFrame;
                if (movingPart & 2)
@@ -478,6 +483,8 @@ namespace ImSequencer
                   l = r;
                if (movingPart & 2 && r < l)
                   r = l;
+
+               sequence->MoveFrame(movingLayer, movingFrame, l, r);
                movingPos += int(diffFrame * framePixelWidth);
             }
             if (!io.MouseDown[0])
@@ -726,6 +733,16 @@ namespace ImSequencer
       if (layerToAddFrameIdx != -1)
       {
          sequence->AddFrame(layerToAddFrameIdx, 0, 10);
+      }
+
+      if (ImGui::IsKeyReleased(VK_DELETE) && selectedLayer >= 0 && selectedFrame >= 0)
+      {
+         sequence->DeleteFrame(*selectedLayer, *selectedFrame);
+         *selectedLayer = -1;
+         *selectedFrame = -1;
+
+         movingLayer = -1;
+         movingFrame = -1;
       }
       return ret;
    }
