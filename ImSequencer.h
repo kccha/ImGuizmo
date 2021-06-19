@@ -40,6 +40,7 @@ namespace ImSequencer
       virtual int AddLayer(int layerType) { return -1; }
       virtual void DeleteLayer(int layerIdx) {}
       virtual void DuplicateLayer(int layerIdx) {}
+      virtual int AddFrame(int layerIdx, int start, int end) { return -1; }
 
       virtual void Copy() {}
       virtual void Paste() {}
