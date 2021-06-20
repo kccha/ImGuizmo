@@ -53,7 +53,7 @@ namespace ImSequencer
       return overDel;
    }
 
-   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedTrack, int* selectedFrame, int* firstFrame, int sequenceOptions)
+   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedTrack, int* selectedKey, int* firstFrame, int sequenceOptions)
    {
       int TrackSelectionBackgroundColor = 0x801080FF;
       bool ret = false;
@@ -65,12 +65,12 @@ namespace ImSequencer
       int legendWidth = 200;
 
       static int movingTrack = -1;
-      static int movingFrame = -1;
+      static int movingKey = -1;
       static int movingPos = -1;
       static int movingPart = -1;
       int delTrackIdx = -1;
       int dupTrackIdx = -1;
-      int trackToAddFrameIdx = -1;
+      int trackToAddKeyIdx = -1;
       int TrackHeight = 20;
       int mouseFrame = -1;
 
@@ -187,7 +187,7 @@ namespace ImSequencer
          mouseFrame = Clamp(mouseFrame, sequence->GetFrameMin(), sequence->GetFrameMax());
 
 
-         if (!MovingCurrentFrame && !MovingScrollBar && movingTrack == -1 && movingFrame == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
+         if (!MovingCurrentFrame && !MovingScrollBar && movingTrack == -1 && movingKey == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
          {
             MovingCurrentFrame = true;
          }
@@ -303,7 +303,7 @@ namespace ImSequencer
 
                bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight - TrackHeight + 2 - 10, tpos.y + 2), true);
                if (overAddFrame && io.MouseReleased[0])
-                  trackToAddFrameIdx = i;
+                  trackToAddKeyIdx = i;
             }
             customHeight += sequence->GetCustomTrackHeight(i);
          }
@@ -325,7 +325,7 @@ namespace ImSequencer
                size_t localCustomHeight = sequence->GetCustomTrackHeight(i);
                ImVec2 pos = ImVec2(contentMin.x + legendWidth, contentMin.y + TrackHeight * i + 1 + customHeight);
                ImVec2 sz = ImVec2(canvas_size.x + canvas_pos.x, pos.y + TrackHeight - 1 + localCustomHeight);
-               if (!popupOpened && cy >= pos.y && cy < pos.y + (TrackHeight + localCustomHeight) && movingTrack == -1 && movingFrame == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
+               if (!popupOpened && cy >= pos.y && cy < pos.y + (TrackHeight + localCustomHeight) && movingTrack == -1 && movingKey == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
                {
                   col += 0x80201008;
                   pos.x -= legendWidth;
@@ -364,27 +364,27 @@ namespace ImSequencer
          {
             size_t localCustomHeight = sequence->GetCustomTrackHeight(trackIdx);
 
-            int frameCount = sequence->GetItemCount(trackIdx);
-            for (int frameIdx = 0; frameIdx < frameCount; frameIdx++)
+            int keyCount = sequence->GetKeyCount(trackIdx);
+            for (int keyIdx = 0; keyIdx < keyCount; keyIdx++)
             {
-               int* frameStart = nullptr;
-               int* frameEnd = nullptr;
-               unsigned int frameColor = 0;
+               int* keyStart = nullptr;
+               int* keyEnd = nullptr;
+               unsigned int keyColor = 0;
                sequencer_key_type::type keyType = sequencer_key_type::key;
-               sequence->GetFrame(trackIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor, &keyType);
-               if (*selectedTrack == trackIdx && *selectedFrame == frameIdx)
+               sequence->GetKey(trackIdx, keyIdx, &keyStart, &keyEnd, NULL, &keyColor, &keyType);
+               if (*selectedTrack == trackIdx && *selectedKey == keyIdx)
                {
-                  frameColor = frameColor | 0x0000DDDD;
+                  keyColor = keyColor | 0x0000DDDD;
 
                }
-               // Calculate frame rect
+               // Calculate key rect
                ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + TrackHeight * trackIdx + 1 + customHeight);
-               ImVec2 slotP1(pos.x + *frameStart * framePixelWidth, pos.y + 2);
-               ImVec2 slotP2(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2);
+               ImVec2 slotP1(pos.x + *keyStart * framePixelWidth, pos.y + 2);
+               ImVec2 slotP2(pos.x + *keyEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2);
                // To the end of the custom height
-               ImVec2 slotP3(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2 + localCustomHeight);
-               unsigned int slotColor = frameColor | 0xFF000000;
-               unsigned int slotColorHalf = (frameColor & 0xFFFFFF) | 0x40000000;
+               ImVec2 slotP3(pos.x + *keyEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2 + localCustomHeight);
+               unsigned int slotColor = keyColor | 0xFF000000;
+               unsigned int slotColorHalf = (keyColor & 0xFFFFFF) | 0x40000000;
 
                // Draw the frame rects
                if (slotP1.x <= (canvas_size.x + contentMin.x) && slotP2.x >= (contentMin.x + legendWidth))
@@ -395,7 +395,7 @@ namespace ImSequencer
 
                if (ImRect(slotP1, slotP2).Contains(io.MousePos) && io.MouseDoubleClicked[0])
                {
-                  sequence->DoubleClickFrame(trackIdx, frameIdx);
+                  sequence->DoubleClickKey(trackIdx, keyIdx);
                }
 
                ImRect rects[3] = 
@@ -406,7 +406,7 @@ namespace ImSequencer
                };
 
                const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isTrackSelected ? 0 : 0x202020) };
-               if (movingTrack == -1  && movingFrame == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
+               if (movingTrack == -1  && movingKey == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
                {
                   switch (keyType)
                   {
@@ -421,10 +421,10 @@ namespace ImSequencer
                               ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
                            {
                               movingTrack = trackIdx;
-                              movingFrame = frameIdx;
+                              movingKey = keyIdx;
                               movingPos = cx;
                               movingPart = 3;
-                              sequence->BeginEdit(movingTrack, movingFrame);
+                              sequence->BeginEdit(movingTrack, movingKey);
                            }
                         }
                      }
@@ -448,10 +448,10 @@ namespace ImSequencer
                         if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
                         {
                            movingTrack = trackIdx;
-                           movingFrame = frameIdx;
+                           movingKey = keyIdx;
                            movingPos = cx;
                            movingPart = j + 1;
-                           sequence->BeginEdit(movingTrack, movingFrame);
+                           sequence->BeginEdit(movingTrack, movingKey);
                            break;
                         }
                      }
@@ -473,14 +473,14 @@ namespace ImSequencer
                   if (*selectedTrack != trackIdx)
                   {
                      *selectedTrack = trackIdx;
-                     *selectedFrame = -1;
+                     *selectedKey = -1;
                   }
                }
             }
 
             // To the end of the custom height
             // moving
-            if (movingTrack >= 0 && movingFrame >= 0)
+            if (movingTrack >= 0 && movingKey >= 0)
             {
                ImGui::CaptureMouseFromApp();
                int diffFrame = int((cx - movingPos) / framePixelWidth);
@@ -488,15 +488,15 @@ namespace ImSequencer
                {
                   int* start, * end;
                   sequencer_key_type::type keyType = sequencer_key_type::key;
-                  sequence->GetFrame(movingTrack, movingFrame, &start, &end, NULL, NULL, &keyType);
+                  sequence->GetKey(movingTrack, movingKey, &start, &end, NULL, NULL, &keyType);
 
                   if (selectedTrack)
                   {
                      *selectedTrack = movingTrack;
                   }
-                  if (selectedFrame)
+                  if (selectedKey)
                   {
-                     *selectedFrame = movingFrame;
+                     *selectedKey = movingKey;
                   }
 
                   int l = *start;
@@ -520,21 +520,21 @@ namespace ImSequencer
                   {
                      r = l;
                   }
-                  sequence->MoveFrame(movingTrack, movingFrame, l, r);
+                  sequence->MoveKey(movingTrack, movingKey, l, r);
                   movingPos += int(diffFrame * framePixelWidth);
                }
                if (!io.MouseDown[0])
                {
                   // single select
-                  if (!diffFrame && movingPart && selectedTrack && selectedFrame)
+                  if (!diffFrame && movingPart && selectedTrack && selectedKey)
                   {
                      *selectedTrack = movingTrack;
-                     *selectedFrame = movingFrame;
+                     *selectedKey = movingKey;
                      ret = true;
                   }
 
                   movingTrack = -1;
-                  movingFrame = -1;
+                  movingKey = -1;
                   sequence->EndEdit();
                }
             }
@@ -712,7 +712,7 @@ namespace ImSequencer
                }
                else
                {
-                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingTrack == -1 && movingFrame == -1)
+                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingTrack == -1 && movingKey == -1)
                   {
                      MovingScrollBar = true;
                      panningViewSource = io.MousePos;
@@ -790,26 +790,26 @@ namespace ImSequencer
          sequence->DuplicateTrack(dupTrackIdx);
       }
 
-      if (trackToAddFrameIdx != -1)
+      if (trackToAddKeyIdx != -1)
       {
-         sequence->AddFrame(trackToAddFrameIdx, 0, 0);
+         sequence->AddKey(trackToAddKeyIdx, 0, 0);
       }
 
-      if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedFrame >= 0)
+      if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedKey >= 0)
       {
-         sequence->DeleteFrame(*selectedTrack, *selectedFrame);
+         sequence->DeleteKey(*selectedTrack, *selectedKey);
          *selectedTrack = -1;
-         *selectedFrame = -1;
+         *selectedKey = -1;
 
          movingTrack = -1;
-         movingFrame = -1;
+         movingKey = -1;
       }
 
       if (ImGui::IsKeyReleased(VK_SPACE) && *selectedTrack >= 0 && mouseFrame >= 0)
       {
-         *selectedFrame = sequence->AddFrame(*selectedTrack, mouseFrame, mouseFrame);
+         *selectedKey = sequence->AddKey(*selectedTrack, mouseFrame, mouseFrame);
          movingTrack = -1;
-         movingFrame = -1;
+         movingKey = -1;
       }
       return ret;
    }

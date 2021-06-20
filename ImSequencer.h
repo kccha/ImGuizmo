@@ -33,33 +33,33 @@ namespace ImSequencer
       bool focused = false;
       virtual int GetFrameMin() const = 0;
       virtual int GetFrameMax() const = 0;
-      virtual int GetItemCount(int trackIdx) const = 0;
+      virtual int GetKeyCount(int trackIdx) const = 0;
       virtual int GetTrackCount() const = 0;
 
       virtual void BeginEdit(int trackIdx, int frameIdx) {}
       virtual void EndEdit() {}
-      virtual int GetItemTypeCount() const { return 0; }
+      virtual int GetKeyTypeCount() const { return 0; }
       virtual int GetTrackTypeCount() const { return 0; }
-      virtual const char* GetItemTypeName(int /*typeIndex*/) const { return ""; }
-      virtual const char* GetItemLabel(int trackIdx, int itemIdx) const { return ""; }
+      virtual const char* GetKeyTypeName(int /*typeIndex*/) const { return ""; }
+      virtual const char* GetKeyLabel(int trackIdx, int itemIdx) const { return ""; }
 
       virtual const char* GetTrackTypeName(int /*typeIndex*/) const { return ""; }
       virtual const char* GetTrackLabel(int trackIdx) const { return ""; }
 
-      virtual void GetFrame(int trackIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
+      virtual void GetKey(int trackIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
       virtual void GetTrack(int trackIdx, int** start, int** end, int* type, unsigned int* color) = 0;
       virtual int AddTrack(int trackType) { return -1; }
       virtual void DeleteTrack(int trackIdx) {}
       virtual void DuplicateTrack(int trackIdx) {}
-      virtual int AddFrame(int trackIdx, int start, int end) { return -1; }
-      virtual void DeleteFrame(int trackIdx, int frameIdx) { }
-      virtual bool MoveFrame(int trackIdx, int frameIdx, int newStart, int newEnd) { return false; }
+      virtual int AddKey(int trackIdx, int start, int end) { return -1; }
+      virtual void DeleteKey(int trackIdx, int frameIdx) { }
+      virtual bool MoveKey(int trackIdx, int frameIdx, int newStart, int newEnd) { return false; }
 
       virtual void Copy() {}
       virtual void Paste() {}
 
       virtual size_t GetCustomTrackHeight(int trackIdx) { return 0; }
-      virtual void DoubleClickFrame(int trackIdx, int itemIdx) {}
+      virtual void DoubleClickKey(int trackIdx, int itemIdx) {}
       virtual void DoubleClickTrack(int trackIdx) {}
       virtual void CustomDraw(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*legendRect*/, const ImRect& /*clippingRect*/, const ImRect& /*legendClippingRect*/) {}
       virtual void CustomDrawCompact(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*clippingRect*/) {}

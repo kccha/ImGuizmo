@@ -370,8 +370,8 @@ struct MySequence : public ImSequencer::SequenceInterface
    }
    virtual int GetItemCount() const { return (int)myItems.size(); }
 
-   virtual int GetItemTypeCount() const { return sizeof(SequencerItemTypeNames) / sizeof(char*); }
-   virtual const char* GetItemTypeName(int typeIndex) const { return SequencerItemTypeNames[typeIndex]; }
+   virtual int GetKeyTypeCount() const { return sizeof(SequencerItemTypeNames) / sizeof(char*); }
+   virtual const char* GetKeyTypeName(int typeIndex) const { return SequencerItemTypeNames[typeIndex]; }
    virtual const char* GetItemLabel(int index) const
    {
       static char tmps[512];
