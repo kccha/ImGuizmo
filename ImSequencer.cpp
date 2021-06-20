@@ -357,7 +357,8 @@ namespace ImSequencer
                int* frameStart = nullptr;
                int* frameEnd = nullptr;
                unsigned int frameColor = 0;
-               sequence->GetFrame(layerIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor);
+               sequencer_key_type::type keyType = sequencer_key_type::key;
+               sequence->GetFrame(layerIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor, &keyType);
                if (*selectedLayer == layerIdx && *selectedFrame == frameIdx)
                {
                   frameColor = frameColor | 0x0000DDDD;
@@ -394,34 +395,117 @@ namespace ImSequencer
                const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isLayerSelected ? 0 : 0x202020) };
                if (movingLayer == -1  && movingFrame == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
                {
-                  for (int j = 2; j >= 0; j--)
+                  switch (keyType)
                   {
-                     ImRect& rc = rects[j];
-                     if (!rc.Contains(io.MousePos))
-                        continue;
-                     draw_list->AddRectFilled(rc.Min, rc.Max, quadColor[j], 2);
-                  }
-
-                  for (int j = 0; j < ArraySize(rects); j++)
-                  {
-                     ImRect& rc = rects[j];
-                     if (!rc.Contains(io.MousePos))
-                        continue;
-                     if (!ImRect(childFramePos, childFramePos + childFrameSize).Contains(io.MousePos))
-                        continue;
-                     if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
+                  case sequencer_key_type::key:
                      {
-                        movingLayer = layerIdx;
-                        movingFrame = frameIdx;
-                        movingPos = cx;
-                        movingPart = j + 1;
-                        sequence->BeginEdit(movingLayer, movingFrame);
-                        break;
+                        static_assert(2 < ArraySize(rects), "Need to update this.");
+                        ImRect& rc = rects[2];
+                        if (rc.Contains(io.MousePos))
+                        {
+                           draw_list->AddRectFilled(rc.Min, rc.Max, quadColor[2], 2);
+                           if (ImRect(childFramePos, childFramePos + childFrameSize).Contains(io.MousePos) && 
+                              ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
+                           {
+                              movingLayer = layerIdx;
+                              movingFrame = frameIdx;
+                              movingPos = cx;
+                              movingPart = 3;
+                              sequence->BeginEdit(movingLayer, movingFrame);
+                           }
+                        }
                      }
+                     break;
+                  case sequencer_key_type::range:
+                     for (int j = 2; j >= 0; j--)
+                     {
+                        ImRect& rc = rects[j];
+                        if (!rc.Contains(io.MousePos))
+                           continue;
+                        draw_list->AddRectFilled(rc.Min, rc.Max, quadColor[j], 2);
+                     }
+
+                     for (int j = 0; j < ArraySize(rects); j++)
+                     {
+                        ImRect& rc = rects[j];
+                        if (!rc.Contains(io.MousePos))
+                           continue;
+                        if (!ImRect(childFramePos, childFramePos + childFrameSize).Contains(io.MousePos))
+                           continue;
+                        if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
+                        {
+                           movingLayer = layerIdx;
+                           movingFrame = frameIdx;
+                           movingPos = cx;
+                           movingPart = j + 1;
+                           sequence->BeginEdit(movingLayer, movingFrame);
+                           break;
+                        }
+                     }
+                     break;
                   }
                }
             }
 
+            // moving
+            if (movingLayer >= 0 && movingFrame >= 0)
+            {
+               ImGui::CaptureMouseFromApp();
+               int diffFrame = int((cx - movingPos) / framePixelWidth);
+               if (std::abs(diffFrame) > 0)
+               {
+                  int* start, * end;
+                  sequencer_key_type::type keyType = sequencer_key_type::key;
+                  sequence->GetFrame(movingLayer, movingFrame, &start, &end, NULL, NULL, &keyType);
+
+                  if (selectedLayer)
+                  {
+                     *selectedLayer = movingLayer;
+                  }
+                  if (selectedFrame)
+                  {
+                     *selectedFrame = movingFrame;
+                  }
+
+                  int l = *start;
+                  int r = *end;
+                  if (movingPart & 1)
+                     l += diffFrame;
+                  if (movingPart & 2)
+                     r += diffFrame;
+                  if (l < 0)
+                  {
+                     if (movingPart & 2)
+                        r -= l;
+                     l = 0;
+                  }
+                  if (movingPart & 1 && l > r)
+                     l = r;
+                  if (movingPart & 2 && r < l)
+                     r = l;
+
+                  if (keyType == sequencer_key_type::key)
+                  {
+                     r = l;
+                  }
+                  sequence->MoveFrame(movingLayer, movingFrame, l, r);
+                  movingPos += int(diffFrame * framePixelWidth);
+               }
+               if (!io.MouseDown[0])
+               {
+                  // single select
+                  if (!diffFrame && movingPart && selectedLayer && selectedFrame)
+                  {
+                     *selectedLayer = movingLayer;
+                     *selectedFrame = movingFrame;
+                     ret = true;
+                  }
+
+                  movingLayer = -1;
+                  movingFrame = -1;
+                  sequence->EndEdit();
+               }
+            }
 
             // custom draw
             if (localCustomHeight > 0)
@@ -448,60 +532,6 @@ namespace ImSequencer
          }
 
 
-         // moving
-         if (movingLayer >= 0 && movingFrame >= 0)
-         {
-            ImGui::CaptureMouseFromApp();
-            int diffFrame = int((cx - movingPos) / framePixelWidth);
-            if (std::abs(diffFrame) > 0)
-            {
-               int* start, * end;
-               sequence->GetFrame(movingLayer, movingFrame, &start, &end, NULL, NULL);
-
-               if (selectedLayer)
-               {
-                  *selectedLayer = movingLayer;
-               }
-               if (selectedFrame)
-               {
-                  *selectedFrame = movingFrame;
-               }
-
-               int l = *start;
-               int r = *end;
-               if (movingPart & 1)
-                  l += diffFrame;
-               if (movingPart & 2)
-                  r += diffFrame;
-               if (l < 0)
-               {
-                  if (movingPart & 2)
-                     r -= l;
-                  l = 0;
-               }
-               if (movingPart & 1 && l > r)
-                  l = r;
-               if (movingPart & 2 && r < l)
-                  r = l;
-
-               sequence->MoveFrame(movingLayer, movingFrame, l, r);
-               movingPos += int(diffFrame * framePixelWidth);
-            }
-            if (!io.MouseDown[0])
-            {
-               // single select
-               if (!diffFrame && movingPart && selectedLayer && selectedFrame)
-               {
-                  *selectedLayer = movingLayer;
-                  *selectedFrame = movingFrame;
-                  ret = true;
-               }
-
-               movingLayer = -1;
-               movingFrame = -1;
-               sequence->EndEdit();
-            }
-         }
 
          draw_list->PopClipRect();
          draw_list->PopClipRect();

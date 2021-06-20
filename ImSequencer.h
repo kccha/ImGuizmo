@@ -4,6 +4,16 @@
 
 struct ImDrawList;
 struct ImRect;
+namespace sequencer_key_type
+{
+   enum type
+   {
+      key,
+      range,
+
+      count,
+   };
+}
 namespace ImSequencer
 {
    enum SEQUENCER_OPTIONS
@@ -16,6 +26,7 @@ namespace ImSequencer
       SEQUENCER_COPYPASTE = 1 << 6,
       SEQUENCER_EDIT_ALL = SEQUENCER_EDIT_STARTEND | SEQUENCER_CHANGE_FRAME
    };
+
 
    struct SequenceInterface
    {
@@ -35,7 +46,7 @@ namespace ImSequencer
       virtual const char* GetLayerTypeName(int /*typeIndex*/) const { return ""; }
       virtual const char* GetLayerLabel(int layerIdx) const { return ""; }
 
-      virtual void GetFrame(int layerIdx, int index, int** start, int** end, int* type, unsigned int* color) = 0;
+      virtual void GetFrame(int layerIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
       virtual void GetLayer(int layerIdx, int** start, int** end, int* type, unsigned int* color) = 0;
       virtual int AddLayer(int layerType) { return -1; }
       virtual void DeleteLayer(int layerIdx) {}
