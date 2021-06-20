@@ -19,7 +19,7 @@ namespace ImSequencer
       draw_list->AddRect(copyRect.Min, copyRect.Max, color, 4);
       copyRect.Translate(ImVec2(2, 2));
       draw_list->AddRect(copyRect.Min, copyRect.Max, color, 4);
-      // TODO(KCC): #CopyLayer #NewFrame
+      // TODO(KCC): #CopyTrack #NewFrame
       return isOver;
    }
 
@@ -36,13 +36,13 @@ namespace ImSequencer
       if (add)
          draw_list->AddLine(ImVec2(midx, delRect.Min.y + 3), ImVec2(midx, delRect.Max.y - 3), delColor, 2);
 
-      // TODO(KCC): #CopyLayer #NewFrame
+      // TODO(KCC): #CopyTrack #NewFrame
       return overDel;
    }
 
-   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedLayer, int* selectedFrame, int* firstFrame, int sequenceOptions)
+   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedTrack, int* selectedFrame, int* firstFrame, int sequenceOptions)
    {
-      int LayerSelectionBackgroundColor = 0x801080FF;
+      int TrackSelectionBackgroundColor = 0x801080FF;
       bool ret = false;
       ImGuiIO& io = ImGui::GetIO();
       int cx = (int)(io.MousePos.x);
@@ -51,18 +51,18 @@ namespace ImSequencer
       static float framePixelWidthTarget = 10.f;
       int legendWidth = 200;
 
-      static int movingLayer = -1;
+      static int movingTrack = -1;
       static int movingFrame = -1;
       static int movingPos = -1;
       static int movingPart = -1;
-      int delLayerIdx = -1;
-      int dupLayerIdx = -1;
-      int layerToAddFrameIdx = -1;
-      int LayerHeight = 20;
+      int delTrackIdx = -1;
+      int dupTrackIdx = -1;
+      int trackToAddFrameIdx = -1;
+      int TrackHeight = 20;
 
       bool popupOpened = false;
-      int layerCount = sequence->GetLayerCount();
-      if (!layerCount)
+      int trackCount = sequence->GetTrackCount();
+      if (!trackCount)
          return false;
       ImGui::BeginGroup();
 
@@ -72,10 +72,10 @@ namespace ImSequencer
       int firstFrameUsed = firstFrame ? *firstFrame : 0;
 
 
-      int controlHeight = layerCount * LayerHeight;
-      for (int i = 0; i < layerCount; i++)
+      int controlHeight = trackCount * TrackHeight;
+      for (int i = 0; i < trackCount; i++)
       {
-         controlHeight += int(sequence->GetCustomLayerHeight(i));
+         controlHeight += int(sequence->GetCustomTrackHeight(i));
       }
       int frameCount = ImMax(sequence->GetFrameMax() - sequence->GetFrameMin(), 1);
 
@@ -128,10 +128,10 @@ namespace ImSequencer
       // --
       if (expanded && !*expanded)
       {
-         ImGui::InvisibleButton("canvas", ImVec2(canvas_size.x - canvas_pos.x, (float)LayerHeight));
-         draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + LayerHeight), 0xFF3D3837, 0);
+         ImGui::InvisibleButton("canvas", ImVec2(canvas_size.x - canvas_pos.x, (float)TrackHeight));
+         draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + TrackHeight), 0xFF3D3837, 0);
          char tmps[512];
-         ImFormatString(tmps, IM_ARRAYSIZE(tmps), "%d Frames / %d entries", frameCount, layerCount);
+         ImFormatString(tmps, IM_ARRAYSIZE(tmps), "%d Frames / %d entries", frameCount, trackCount);
          draw_list->AddText(ImVec2(canvas_pos.x + 26, canvas_pos.y + 2), 0xFFFFFFFF, tmps);
       }
       else
@@ -145,7 +145,7 @@ namespace ImSequencer
          }
          */
          // test scroll area
-         ImVec2 headerSize(canvas_size.x, (float)LayerHeight);
+         ImVec2 headerSize(canvas_size.x, (float)TrackHeight);
          ImVec2 scrollBarSize(canvas_size.x, 14.f);
          ImGui::InvisibleButton("topBar", headerSize);
          draw_list->AddRectFilled(canvas_pos, canvas_pos + headerSize, 0xFFFF0000, 0);
@@ -164,9 +164,9 @@ namespace ImSequencer
          draw_list->AddRectFilled(canvas_pos, canvas_pos + canvas_size, 0xFF242424, 0);
 
          // current frame top
-         ImRect topRect(ImVec2(canvas_pos.x + legendWidth, canvas_pos.y), ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + LayerHeight));
+         ImRect topRect(ImVec2(canvas_pos.x + legendWidth, canvas_pos.y), ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + TrackHeight));
 
-         if (!MovingCurrentFrame && !MovingScrollBar && movingLayer == -1 && movingFrame == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
+         if (!MovingCurrentFrame && !MovingScrollBar && movingTrack == -1 && movingFrame == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
          {
             MovingCurrentFrame = true;
          }
@@ -185,24 +185,24 @@ namespace ImSequencer
          }
 
          //header
-         draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + LayerHeight), 0xFF3D3837, 0);
+         draw_list->AddRectFilled(canvas_pos, ImVec2(canvas_size.x + canvas_pos.x, canvas_pos.y + TrackHeight), 0xFF3D3837, 0);
 
-         // Popup for adding a layer
+         // Popup for adding a track
          if (sequenceOptions & SEQUENCER_ADD)
          {
-            if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - LayerHeight, canvas_pos.y + 2), true) && io.MouseReleased[0])
+            if (SequencerAddDelButton(draw_list, ImVec2(canvas_pos.x + legendWidth - TrackHeight, canvas_pos.y + 2), true) && io.MouseReleased[0])
             {
-               ImGui::OpenPopup("addLayer");
+               ImGui::OpenPopup("addTrack");
             }
 
-            if (ImGui::BeginPopup("addLayer"))
+            if (ImGui::BeginPopup("addTrack"))
             {
-               for (int i = 0; i < sequence->GetLayerTypeCount(); i++)
+               for (int i = 0; i < sequence->GetTrackTypeCount(); i++)
                {
-                  if (ImGui::Selectable(sequence->GetLayerTypeName(i)))
+                  if (ImGui::Selectable(sequence->GetTrackTypeName(i)))
                   {
-                     int newLayer = sequence->AddLayer(i);
-                     *selectedLayer = newLayer;
+                     int newTrack = sequence->AddTrack(i);
+                     *selectedTrack = newTrack;
                   }
                }
 
@@ -226,13 +226,13 @@ namespace ImSequencer
             bool halfIndex = (i % halfModFrameCount) == 0;
             int px = (int)canvas_pos.x + int(i * framePixelWidth) + legendWidth - int(firstFrameUsed * framePixelWidth);
             int tiretStart = baseIndex ? 4 : (halfIndex ? 10 : 14);
-            int tiretEnd = baseIndex ? regionHeight : LayerHeight;
+            int tiretEnd = baseIndex ? regionHeight : TrackHeight;
 
             if (px <= (canvas_size.x + canvas_pos.x) && px >= (canvas_pos.x + legendWidth))
             {
                draw_list->AddLine(ImVec2((float)px, canvas_pos.y + (float)tiretStart), ImVec2((float)px, canvas_pos.y + (float)tiretEnd - 1), 0xFF606060, 1);
 
-               draw_list->AddLine(ImVec2((float)px, canvas_pos.y + (float)LayerHeight), ImVec2((float)px, canvas_pos.y + (float)regionHeight - 1), 0x30606060, 1);
+               draw_list->AddLine(ImVec2((float)px, canvas_pos.y + (float)TrackHeight), ImVec2((float)px, canvas_pos.y + (float)regionHeight - 1), 0x30606060, 1);
             }
 
             if (baseIndex && px > (canvas_pos.x + legendWidth))
@@ -258,10 +258,10 @@ namespace ImSequencer
          };
          for (int i = sequence->GetFrameMin(); i <= sequence->GetFrameMax(); i += frameStep)
          {
-            drawLine(i, LayerHeight);
+            drawLine(i, TrackHeight);
          }
-         drawLine(sequence->GetFrameMin(), LayerHeight);
-         drawLine(sequence->GetFrameMax(), LayerHeight);
+         drawLine(sequence->GetFrameMin(), TrackHeight);
+         drawLine(sequence->GetFrameMax(), TrackHeight);
          /*
                   draw_list->AddLine(canvas_pos, ImVec2(canvas_pos.x, canvas_pos.y + controlHeight), 0xFF000000, 1);
                   draw_list->AddLine(ImVec2(canvas_pos.x, canvas_pos.y + ItemHeight), ImVec2(canvas_size.x, canvas_pos.y + ItemHeight), 0xFF000000, 1);
@@ -272,46 +272,46 @@ namespace ImSequencer
 
          // draw item names in the legend rect on the left
          size_t customHeight = 0;
-         for (int i = 0; i < layerCount; i++)
+         for (int i = 0; i < trackCount; i++)
          {
-            ImVec2 tpos(contentMin.x + 3, contentMin.y + i * LayerHeight + 2 + customHeight);
-            draw_list->AddText(tpos, 0xFFFFFFFF, sequence->GetLayerLabel(i));
+            ImVec2 tpos(contentMin.x + 3, contentMin.y + i * TrackHeight + 2 + customHeight);
+            draw_list->AddText(tpos, 0xFFFFFFFF, sequence->GetTrackLabel(i));
 
             if (sequenceOptions & SEQUENCER_DEL)
             {
-               bool overDel = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - LayerHeight + 2 - 10, tpos.y + 2), false);
+               bool overDel = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight + 2 - 10, tpos.y + 2), false);
                if (overDel && io.MouseReleased[0])
-                  delLayerIdx = i;
+                  delTrackIdx = i;
 
-               bool overDup = SequencerCopyButton(draw_list, ImVec2(contentMin.x + legendWidth - LayerHeight - 2 * LayerHeight + 2 - 10, tpos.y + 2), true);
+               bool overDup = SequencerCopyButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight - 2 * TrackHeight + 2 - 10, tpos.y + 2), true);
                if (overDup && io.MouseReleased[0])
-                  dupLayerIdx = i;
+                  dupTrackIdx = i;
 
-               bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - LayerHeight - LayerHeight + 2 - 10, tpos.y + 2), true);
+               bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight - TrackHeight + 2 - 10, tpos.y + 2), true);
                if (overAddFrame && io.MouseReleased[0])
-                  layerToAddFrameIdx = i;
+                  trackToAddFrameIdx = i;
             }
-            customHeight += sequence->GetCustomLayerHeight(i);
+            customHeight += sequence->GetCustomTrackHeight(i);
          }
 
 
          // selection
-         bool isLayerSelected = selectedLayer && (*selectedLayer >= 0);
+         bool isTrackSelected = selectedTrack && (*selectedTrack >= 0);
 
          // clipping rect so items bars are not visible in the legend on the left when scrolled
          //
 
-         // Draw layer backgrounds
+         // Draw track backgrounds
          customHeight = 0;
          {
-            for (int i = 0; i < layerCount; i++)
+            for (int i = 0; i < trackCount; i++)
             {
                unsigned int col = (i & 1) ? 0xFF3A3636 : 0xFF413D3D;
 
-               size_t localCustomHeight = sequence->GetCustomLayerHeight(i);
-               ImVec2 pos = ImVec2(contentMin.x + legendWidth, contentMin.y + LayerHeight * i + 1 + customHeight);
-               ImVec2 sz = ImVec2(canvas_size.x + canvas_pos.x, pos.y + LayerHeight - 1 + localCustomHeight);
-               if (!popupOpened && cy >= pos.y && cy < pos.y + (LayerHeight + localCustomHeight) && movingLayer == -1 && movingFrame == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
+               size_t localCustomHeight = sequence->GetCustomTrackHeight(i);
+               ImVec2 pos = ImVec2(contentMin.x + legendWidth, contentMin.y + TrackHeight * i + 1 + customHeight);
+               ImVec2 sz = ImVec2(canvas_size.x + canvas_pos.x, pos.y + TrackHeight - 1 + localCustomHeight);
+               if (!popupOpened && cy >= pos.y && cy < pos.y + (TrackHeight + localCustomHeight) && movingTrack == -1 && movingFrame == -1 && cx>contentMin.x && cx < contentMin.x + canvas_size.x)
                {
                   col += 0x80201008;
                   pos.x -= legendWidth;
@@ -331,45 +331,45 @@ namespace ImSequencer
             drawLineContent(sequence->GetFrameMin(), int(contentHeight));
             drawLineContent(sequence->GetFrameMax(), int(contentHeight));
 
-            // Draw layer selection background. Highlights the background of the selected layer
-            if (isLayerSelected)
+            // Draw track selection background. Highlights the background of the selected track
+            if (isTrackSelected)
             {
                customHeight = 0;
-               for (int i = 0; i < *selectedLayer; i++)
+               for (int i = 0; i < *selectedTrack; i++)
                {
-                  customHeight += sequence->GetCustomLayerHeight(i);;
+                  customHeight += sequence->GetCustomTrackHeight(i);;
                }
 
-               draw_list->AddRectFilled(ImVec2(contentMin.x, contentMin.y + LayerHeight * *selectedLayer + customHeight), ImVec2(contentMin.x + canvas_size.x, contentMin.y + LayerHeight * (*selectedLayer + 1) + customHeight), LayerSelectionBackgroundColor, 1.f);
+               draw_list->AddRectFilled(ImVec2(contentMin.x, contentMin.y + TrackHeight * *selectedTrack + customHeight), ImVec2(contentMin.x + canvas_size.x, contentMin.y + TrackHeight * (*selectedTrack + 1) + customHeight), TrackSelectionBackgroundColor, 1.f);
             }
          }
 
 
          // slots
          customHeight = 0;
-         for (int layerIdx = 0; layerIdx < layerCount; layerIdx++)
+         for (int trackIdx = 0; trackIdx < trackCount; trackIdx++)
          {
-            size_t localCustomHeight = sequence->GetCustomLayerHeight(layerIdx);
+            size_t localCustomHeight = sequence->GetCustomTrackHeight(trackIdx);
 
-            int frameCount = sequence->GetItemCount(layerIdx);
+            int frameCount = sequence->GetItemCount(trackIdx);
             for (int frameIdx = 0; frameIdx < frameCount; frameIdx++)
             {
                int* frameStart = nullptr;
                int* frameEnd = nullptr;
                unsigned int frameColor = 0;
                sequencer_key_type::type keyType = sequencer_key_type::key;
-               sequence->GetFrame(layerIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor, &keyType);
-               if (*selectedLayer == layerIdx && *selectedFrame == frameIdx)
+               sequence->GetFrame(trackIdx, frameIdx, &frameStart, &frameEnd, NULL, &frameColor, &keyType);
+               if (*selectedTrack == trackIdx && *selectedFrame == frameIdx)
                {
                   frameColor = frameColor | 0x0000DDDD;
 
                }
                // Calculate frame rect
-               ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + LayerHeight * layerIdx + 1 + customHeight);
+               ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + TrackHeight * trackIdx + 1 + customHeight);
                ImVec2 slotP1(pos.x + *frameStart * framePixelWidth, pos.y + 2);
-               ImVec2 slotP2(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + LayerHeight - 2);
+               ImVec2 slotP2(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2);
                // To the end of the custom height
-               ImVec2 slotP3(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + LayerHeight - 2 + localCustomHeight);
+               ImVec2 slotP3(pos.x + *frameEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2 + localCustomHeight);
                unsigned int slotColor = frameColor | 0xFF000000;
                unsigned int slotColorHalf = (frameColor & 0xFFFFFF) | 0x40000000;
 
@@ -382,7 +382,7 @@ namespace ImSequencer
 
                if (ImRect(slotP1, slotP2).Contains(io.MousePos) && io.MouseDoubleClicked[0])
                {
-                  sequence->DoubleClick(layerIdx, frameIdx);
+                  sequence->DoubleClick(trackIdx, frameIdx);
                }
 
                ImRect rects[3] = 
@@ -392,8 +392,8 @@ namespace ImSequencer
                   ImRect(slotP1, slotP2),
                };
 
-               const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isLayerSelected ? 0 : 0x202020) };
-               if (movingLayer == -1  && movingFrame == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
+               const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isTrackSelected ? 0 : 0x202020) };
+               if (movingTrack == -1  && movingFrame == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
                {
                   switch (keyType)
                   {
@@ -407,11 +407,11 @@ namespace ImSequencer
                            if (ImRect(childFramePos, childFramePos + childFrameSize).Contains(io.MousePos) && 
                               ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
                            {
-                              movingLayer = layerIdx;
+                              movingTrack = trackIdx;
                               movingFrame = frameIdx;
                               movingPos = cx;
                               movingPart = 3;
-                              sequence->BeginEdit(movingLayer, movingFrame);
+                              sequence->BeginEdit(movingTrack, movingFrame);
                            }
                         }
                      }
@@ -434,11 +434,11 @@ namespace ImSequencer
                            continue;
                         if (ImGui::IsMouseClicked(0) && !MovingScrollBar && !MovingCurrentFrame)
                         {
-                           movingLayer = layerIdx;
+                           movingTrack = trackIdx;
                            movingFrame = frameIdx;
                            movingPos = cx;
                            movingPart = j + 1;
-                           sequence->BeginEdit(movingLayer, movingFrame);
+                           sequence->BeginEdit(movingTrack, movingFrame);
                            break;
                         }
                      }
@@ -448,7 +448,7 @@ namespace ImSequencer
             }
 
             // moving
-            if (movingLayer >= 0 && movingFrame >= 0)
+            if (movingTrack >= 0 && movingFrame >= 0)
             {
                ImGui::CaptureMouseFromApp();
                int diffFrame = int((cx - movingPos) / framePixelWidth);
@@ -456,11 +456,11 @@ namespace ImSequencer
                {
                   int* start, * end;
                   sequencer_key_type::type keyType = sequencer_key_type::key;
-                  sequence->GetFrame(movingLayer, movingFrame, &start, &end, NULL, NULL, &keyType);
+                  sequence->GetFrame(movingTrack, movingFrame, &start, &end, NULL, NULL, &keyType);
 
-                  if (selectedLayer)
+                  if (selectedTrack)
                   {
-                     *selectedLayer = movingLayer;
+                     *selectedTrack = movingTrack;
                   }
                   if (selectedFrame)
                   {
@@ -488,20 +488,20 @@ namespace ImSequencer
                   {
                      r = l;
                   }
-                  sequence->MoveFrame(movingLayer, movingFrame, l, r);
+                  sequence->MoveFrame(movingTrack, movingFrame, l, r);
                   movingPos += int(diffFrame * framePixelWidth);
                }
                if (!io.MouseDown[0])
                {
                   // single select
-                  if (!diffFrame && movingPart && selectedLayer && selectedFrame)
+                  if (!diffFrame && movingPart && selectedTrack && selectedFrame)
                   {
-                     *selectedLayer = movingLayer;
+                     *selectedTrack = movingTrack;
                      *selectedFrame = movingFrame;
                      ret = true;
                   }
 
-                  movingLayer = -1;
+                  movingTrack = -1;
                   movingFrame = -1;
                   sequence->EndEdit();
                }
@@ -510,23 +510,23 @@ namespace ImSequencer
             // custom draw
             if (localCustomHeight > 0)
             {
-               ImVec2 rp(canvas_pos.x, contentMin.y + LayerHeight * layerIdx + 1 + customHeight);
-               ImRect customRect(rp + ImVec2(legendWidth - (firstFrameUsed - sequence->GetFrameMin() - 0.5f) * framePixelWidth, float(LayerHeight)),
-                  rp + ImVec2(legendWidth + (sequence->GetFrameMax() - firstFrameUsed - 0.5f + 2.f) * framePixelWidth, float(localCustomHeight + LayerHeight)));
-               ImRect clippingRect(rp + ImVec2(float(legendWidth), float(LayerHeight)), rp + ImVec2(canvas_size.x, float(localCustomHeight + LayerHeight)));
+               ImVec2 rp(canvas_pos.x, contentMin.y + TrackHeight * trackIdx + 1 + customHeight);
+               ImRect customRect(rp + ImVec2(legendWidth - (firstFrameUsed - sequence->GetFrameMin() - 0.5f) * framePixelWidth, float(TrackHeight)),
+                  rp + ImVec2(legendWidth + (sequence->GetFrameMax() - firstFrameUsed - 0.5f + 2.f) * framePixelWidth, float(localCustomHeight + TrackHeight)));
+               ImRect clippingRect(rp + ImVec2(float(legendWidth), float(TrackHeight)), rp + ImVec2(canvas_size.x, float(localCustomHeight + TrackHeight)));
 
-               ImRect legendRect(rp + ImVec2(0.f, float(LayerHeight)), rp + ImVec2(float(legendWidth), float(localCustomHeight)));
-               ImRect legendClippingRect(canvas_pos + ImVec2(0.f, float(LayerHeight)), canvas_pos + ImVec2(float(legendWidth), float(localCustomHeight + LayerHeight)));
-               customDraws.push_back({ layerIdx, customRect, legendRect, clippingRect, legendClippingRect });
+               ImRect legendRect(rp + ImVec2(0.f, float(TrackHeight)), rp + ImVec2(float(legendWidth), float(localCustomHeight)));
+               ImRect legendClippingRect(canvas_pos + ImVec2(0.f, float(TrackHeight)), canvas_pos + ImVec2(float(legendWidth), float(localCustomHeight + TrackHeight)));
+               customDraws.push_back({ trackIdx, customRect, legendRect, clippingRect, legendClippingRect });
             }
             else
             {
-               ImVec2 rp(canvas_pos.x, contentMin.y + LayerHeight * layerIdx + customHeight);
+               ImVec2 rp(canvas_pos.x, contentMin.y + TrackHeight * trackIdx + customHeight);
                ImRect customRect(rp + ImVec2(legendWidth - (firstFrameUsed - sequence->GetFrameMin() - 0.5f) * framePixelWidth, float(0.f)),
-                  rp + ImVec2(legendWidth + (sequence->GetFrameMax() - firstFrameUsed - 0.5f + 2.f) * framePixelWidth, float(LayerHeight)));
-               ImRect clippingRect(rp + ImVec2(float(legendWidth), float(0.f)), rp + ImVec2(canvas_size.x, float(LayerHeight)));
+                  rp + ImVec2(legendWidth + (sequence->GetFrameMax() - firstFrameUsed - 0.5f + 2.f) * framePixelWidth, float(TrackHeight)));
+               ImRect clippingRect(rp + ImVec2(float(legendWidth), float(0.f)), rp + ImVec2(canvas_size.x, float(TrackHeight)));
 
-               compactCustomDraws.push_back({ layerIdx, customRect, ImRect(), clippingRect, ImRect() });
+               compactCustomDraws.push_back({ trackIdx, customRect, ImRect(), clippingRect, ImRect() });
             }
             customHeight += localCustomHeight;
          }
@@ -545,13 +545,13 @@ namespace ImSequencer
          if (sequenceOptions & SEQUENCER_COPYPASTE)
          {
             ImRect rectCopy(ImVec2(contentMin.x + 100, canvas_pos.y + 2)
-               , ImVec2(contentMin.x + 100 + 30, canvas_pos.y + LayerHeight - 2));
+               , ImVec2(contentMin.x + 100 + 30, canvas_pos.y + TrackHeight - 2));
             bool inRectCopy = rectCopy.Contains(io.MousePos);
             unsigned int copyColor = inRectCopy ? 0xFF1080FF : 0xFF000000;
             draw_list->AddText(rectCopy.Min, copyColor, "Copy");
 
             ImRect rectPaste(ImVec2(contentMin.x + 140, canvas_pos.y + 2)
-               , ImVec2(contentMin.x + 140 + 30, canvas_pos.y + LayerHeight - 2));
+               , ImVec2(contentMin.x + 140 + 30, canvas_pos.y + TrackHeight - 2));
             bool inRectPaste = rectPaste.Contains(io.MousePos);
             unsigned int pasteColor = inRectPaste ? 0xFF1080FF : 0xFF000000;
             draw_list->AddText(rectPaste.Min, pasteColor, "Paste");
@@ -682,7 +682,7 @@ namespace ImSequencer
                }
                else
                {
-                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingLayer == -1 && movingFrame == -1)
+                  if (scrollBarThumb.Contains(io.MousePos) && ImGui::IsMouseClicked(0) && firstFrame && !MovingCurrentFrame && movingTrack == -1 && movingFrame == -1)
                   {
                      MovingScrollBar = true;
                      panningViewSource = io.MousePos;
@@ -748,30 +748,30 @@ namespace ImSequencer
             *expanded = !*expanded;
       }
 
-      if (delLayerIdx != -1)
+      if (delTrackIdx != -1)
       {
-         sequence->DeleteLayer(delLayerIdx);
-         if (selectedLayer && (*selectedLayer == delLayerIdx || *selectedLayer >= sequence->GetLayerCount()))
-            *selectedLayer = -1;
+         sequence->DeleteTrack(delTrackIdx);
+         if (selectedTrack && (*selectedTrack == delTrackIdx || *selectedTrack >= sequence->GetTrackCount()))
+            *selectedTrack = -1;
       }
 
-      if (dupLayerIdx != -1)
+      if (dupTrackIdx != -1)
       {
-         sequence->DuplicateLayer(dupLayerIdx);
+         sequence->DuplicateTrack(dupTrackIdx);
       }
 
-      if (layerToAddFrameIdx != -1)
+      if (trackToAddFrameIdx != -1)
       {
-         sequence->AddFrame(layerToAddFrameIdx, 0, 10);
+         sequence->AddFrame(trackToAddFrameIdx, 0, 10);
       }
 
-      if (ImGui::IsKeyReleased(VK_DELETE) && selectedLayer >= 0 && selectedFrame >= 0)
+      if (ImGui::IsKeyReleased(VK_DELETE) && selectedTrack >= 0 && selectedFrame >= 0)
       {
-         sequence->DeleteFrame(*selectedLayer, *selectedFrame);
-         *selectedLayer = -1;
+         sequence->DeleteFrame(*selectedTrack, *selectedFrame);
+         *selectedTrack = -1;
          *selectedFrame = -1;
 
-         movingLayer = -1;
+         movingTrack = -1;
          movingFrame = -1;
       }
       return ret;

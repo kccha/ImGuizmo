@@ -33,39 +33,39 @@ namespace ImSequencer
       bool focused = false;
       virtual int GetFrameMin() const = 0;
       virtual int GetFrameMax() const = 0;
-      virtual int GetItemCount(int layerIdx) const = 0;
-      virtual int GetLayerCount() const = 0;
+      virtual int GetItemCount(int trackIdx) const = 0;
+      virtual int GetTrackCount() const = 0;
 
-      virtual void BeginEdit(int layerIdx, int frameIdx) {}
+      virtual void BeginEdit(int trackIdx, int frameIdx) {}
       virtual void EndEdit() {}
       virtual int GetItemTypeCount() const { return 0; }
-      virtual int GetLayerTypeCount() const { return 0; }
+      virtual int GetTrackTypeCount() const { return 0; }
       virtual const char* GetItemTypeName(int /*typeIndex*/) const { return ""; }
-      virtual const char* GetItemLabel(int layerIdx, int itemIdx) const { return ""; }
+      virtual const char* GetItemLabel(int trackIdx, int itemIdx) const { return ""; }
 
-      virtual const char* GetLayerTypeName(int /*typeIndex*/) const { return ""; }
-      virtual const char* GetLayerLabel(int layerIdx) const { return ""; }
+      virtual const char* GetTrackTypeName(int /*typeIndex*/) const { return ""; }
+      virtual const char* GetTrackLabel(int trackIdx) const { return ""; }
 
-      virtual void GetFrame(int layerIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
-      virtual void GetLayer(int layerIdx, int** start, int** end, int* type, unsigned int* color) = 0;
-      virtual int AddLayer(int layerType) { return -1; }
-      virtual void DeleteLayer(int layerIdx) {}
-      virtual void DuplicateLayer(int layerIdx) {}
-      virtual int AddFrame(int layerIdx, int start, int end) { return -1; }
-      virtual void DeleteFrame(int layerIdx, int frameIdx) { }
-      virtual bool MoveFrame(int layerIdx, int frameIdx, int newStart, int newEnd) { return false; }
+      virtual void GetFrame(int trackIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
+      virtual void GetTrack(int trackIdx, int** start, int** end, int* type, unsigned int* color) = 0;
+      virtual int AddTrack(int trackType) { return -1; }
+      virtual void DeleteTrack(int trackIdx) {}
+      virtual void DuplicateTrack(int trackIdx) {}
+      virtual int AddFrame(int trackIdx, int start, int end) { return -1; }
+      virtual void DeleteFrame(int trackIdx, int frameIdx) { }
+      virtual bool MoveFrame(int trackIdx, int frameIdx, int newStart, int newEnd) { return false; }
 
       virtual void Copy() {}
       virtual void Paste() {}
 
-      virtual size_t GetCustomLayerHeight(int layerIdx) { return 0; }
-      virtual void DoubleClick(int layerIdx, int itemIdx) {}
+      virtual size_t GetCustomTrackHeight(int trackIdx) { return 0; }
+      virtual void DoubleClick(int trackIdx, int itemIdx) {}
       virtual void CustomDraw(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*legendRect*/, const ImRect& /*clippingRect*/, const ImRect& /*legendClippingRect*/) {}
       virtual void CustomDrawCompact(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*clippingRect*/) {}
    };
 
 
    // return true if selection is made
-   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedLayer, int* selectedFrame, int* firstFrame, int sequenceOptions);
+   bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedTrack, int* selectedFrame, int* firstFrame, int sequenceOptions);
 
 }
