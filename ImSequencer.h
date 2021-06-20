@@ -59,7 +59,8 @@ namespace ImSequencer
       virtual void Paste() {}
 
       virtual size_t GetCustomTrackHeight(int trackIdx) { return 0; }
-      virtual void DoubleClick(int trackIdx, int itemIdx) {}
+      virtual void DoubleClickFrame(int trackIdx, int itemIdx) {}
+      virtual void DoubleClickTrack(int trackIdx) {}
       virtual void CustomDraw(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*legendRect*/, const ImRect& /*clippingRect*/, const ImRect& /*legendClippingRect*/) {}
       virtual void CustomDrawCompact(int /*index*/, ImDrawList* /*draw_list*/, const ImRect& /*rc*/, const ImRect& /*clippingRect*/) {}
    };

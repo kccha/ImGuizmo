@@ -1,7 +1,20 @@
 #include "ImSequencer.h"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "Utility.h"
 #include <cstdlib>
+#include <windows.h>
+
+ImVec2 Min(ImVec2 a, ImVec2 b)
+{
+   return ImVec2(MIN(a.x, b.x), MIN(a.y, b.y));
+}
+
+ImVec2 Max(ImVec2 a, ImVec2 b)
+{
+   return ImVec2(MAX(a.x, b.x), MAX(a.y, b.y));
+}
+
 
 namespace ImSequencer
 {
@@ -59,6 +72,7 @@ namespace ImSequencer
       int dupTrackIdx = -1;
       int trackToAddFrameIdx = -1;
       int TrackHeight = 20;
+      int mouseFrame = -1;
 
       bool popupOpened = false;
       int trackCount = sequence->GetTrackCount();
@@ -149,10 +163,12 @@ namespace ImSequencer
          ImVec2 scrollBarSize(canvas_size.x, 14.f);
          ImGui::InvisibleButton("topBar", headerSize);
          draw_list->AddRectFilled(canvas_pos, canvas_pos + headerSize, 0xFFFF0000, 0);
+
          ImVec2 childFramePos = ImGui::GetCursorScreenPos();
+         childFramePos = Max(canvas_pos, childFramePos); // Make sure that not going outside our frame
          ImVec2 childFrameSize(canvas_size.x, canvas_size.y - 8.f - headerSize.y - (hasScrollBar ? scrollBarSize.y : 0));
          ImGui::PushStyleColor(ImGuiCol_FrameBg, 0);
-         ImGui::BeginChildFrame(889, childFrameSize);
+         ImGui::BeginChild("Sequencer Frame", childFrameSize);
          sequence->focused = ImGui::IsWindowFocused();
          ImGui::InvisibleButton("contentBar", ImVec2(canvas_size.x, float(controlHeight)));
          const ImVec2 contentMin = ImGui::GetItemRectMin();
@@ -162,9 +178,14 @@ namespace ImSequencer
 
          // full background
          draw_list->AddRectFilled(canvas_pos, canvas_pos + canvas_size, 0xFF242424, 0);
+         draw_list->PushClipRect(canvas_pos, canvas_pos + canvas_size);
 
          // current frame top
          ImRect topRect(ImVec2(canvas_pos.x + legendWidth, canvas_pos.y), ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + TrackHeight));
+
+         mouseFrame = (int)((io.MousePos.x - topRect.Min.x) / framePixelWidth) + firstFrameUsed;
+         mouseFrame = Clamp(mouseFrame, sequence->GetFrameMin(), sequence->GetFrameMax());
+
 
          if (!MovingCurrentFrame && !MovingScrollBar && movingTrack == -1 && movingFrame == -1 && sequenceOptions & SEQUENCER_CHANGE_FRAME && currentFrame && *currentFrame >= 0 && topRect.Contains(io.MousePos) && io.MouseDown[0])
          {
@@ -174,11 +195,7 @@ namespace ImSequencer
          {
             if (frameCount)
             {
-               *currentFrame = (int)((io.MousePos.x - topRect.Min.x) / framePixelWidth) + firstFrameUsed;
-               if (*currentFrame < sequence->GetFrameMin())
-                  *currentFrame = sequence->GetFrameMin();
-               if (*currentFrame >= sequence->GetFrameMax())
-                  *currentFrame = sequence->GetFrameMax();
+               *currentFrame = mouseFrame;
             }
             if (!io.MouseDown[0])
                MovingCurrentFrame = false;
@@ -262,13 +279,10 @@ namespace ImSequencer
          }
          drawLine(sequence->GetFrameMin(), TrackHeight);
          drawLine(sequence->GetFrameMax(), TrackHeight);
-         /*
-                  draw_list->AddLine(canvas_pos, ImVec2(canvas_pos.x, canvas_pos.y + controlHeight), 0xFF000000, 1);
-                  draw_list->AddLine(ImVec2(canvas_pos.x, canvas_pos.y + ItemHeight), ImVec2(canvas_size.x, canvas_pos.y + ItemHeight), 0xFF000000, 1);
-                  */
-                  // clip content
 
-         draw_list->PushClipRect(childFramePos, childFramePos + childFrameSize);
+
+         // Make is so that we don't scroll and overwrite the track header 
+         draw_list->PushClipRect(canvas_pos + ImVec2(0.0f, TrackHeight), canvas_pos + canvas_size);
 
          // draw item names in the legend rect on the left
          size_t customHeight = 0;
@@ -320,7 +334,6 @@ namespace ImSequencer
                customHeight += localCustomHeight;
             }
 
-            draw_list->PushClipRect(childFramePos + ImVec2(float(legendWidth), 0.f), childFramePos + childFrameSize);
 
             // vertical frame lines in content area
             // NOTE(KCC): Vertical lines for the 
@@ -382,7 +395,7 @@ namespace ImSequencer
 
                if (ImRect(slotP1, slotP2).Contains(io.MousePos) && io.MouseDoubleClicked[0])
                {
-                  sequence->DoubleClick(trackIdx, frameIdx);
+                  sequence->DoubleClickFrame(trackIdx, frameIdx);
                }
 
                ImRect rects[3] = 
@@ -446,7 +459,26 @@ namespace ImSequencer
                   }
                }
             }
+            ImVec2 startPos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + TrackHeight * trackIdx + 1 + customHeight);
+            ImVec2 endPos = ImVec2(contentMax.x, contentMin.y + TrackHeight * (trackIdx + 1) + 1 + customHeight);
+            ImRect layerRect = ImRect(startPos, endPos);
+            if (layerRect.Contains(io.MousePos))
+            {
+               if (io.MouseDoubleClicked[0])
+               {
+                  sequence->DoubleClickTrack(trackIdx);
+               }
+               if (ImGui::IsMouseClicked(0))
+               {
+                  if (*selectedTrack != trackIdx)
+                  {
+                     *selectedTrack = trackIdx;
+                     *selectedFrame = -1;
+                  }
+               }
+            }
 
+            // To the end of the custom height
             // moving
             if (movingTrack >= 0 && movingFrame >= 0)
             {
@@ -531,8 +563,6 @@ namespace ImSequencer
             customHeight += localCustomHeight;
          }
 
-
-
          draw_list->PopClipRect();
          draw_list->PopClipRect();
 
@@ -578,8 +608,8 @@ namespace ImSequencer
             draw_list->AddText(ImVec2(cursorOffset + 10, canvas_pos.y + 2), 0xFF2A2AFF, tmps);
          }
 
+         ImGui::EndChild();
 
-         ImGui::EndChildFrame();
          ImGui::PopStyleColor();
          if (hasScrollBar)
          {
@@ -762,15 +792,22 @@ namespace ImSequencer
 
       if (trackToAddFrameIdx != -1)
       {
-         sequence->AddFrame(trackToAddFrameIdx, 0, 10);
+         sequence->AddFrame(trackToAddFrameIdx, 0, 0);
       }
 
-      if (ImGui::IsKeyReleased(VK_DELETE) && selectedTrack >= 0 && selectedFrame >= 0)
+      if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedFrame >= 0)
       {
          sequence->DeleteFrame(*selectedTrack, *selectedFrame);
          *selectedTrack = -1;
          *selectedFrame = -1;
 
+         movingTrack = -1;
+         movingFrame = -1;
+      }
+
+      if (ImGui::IsKeyReleased(VK_SPACE) && *selectedTrack >= 0 && mouseFrame >= 0)
+      {
+         *selectedFrame = sequence->AddFrame(*selectedTrack, mouseFrame, mouseFrame);
          movingTrack = -1;
          movingFrame = -1;
       }
