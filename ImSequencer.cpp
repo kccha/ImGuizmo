@@ -533,9 +533,9 @@ namespace ImSequencer
                      ret = true;
                   }
 
+                  sequence->EndEdit(movingTrack, movingKey);
                   movingTrack = -1;
                   movingKey = -1;
-                  sequence->EndEdit();
                }
             }
 

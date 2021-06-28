@@ -37,7 +37,7 @@ namespace ImSequencer
       virtual int GetTrackCount() const = 0;
 
       virtual void BeginEdit(int trackIdx, int frameIdx) {}
-      virtual void EndEdit() {}
+      virtual void EndEdit(int trackIdx, int frameIdx) {}
       virtual int GetKeyTypeCount() const { return 0; }
       virtual int GetTrackTypeCount() const { return 0; }
       virtual const char* GetKeyTypeName(int /*typeIndex*/) const { return ""; }
