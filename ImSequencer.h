@@ -14,6 +14,24 @@ namespace sequencer_key_type
       count,
    };
 }
+
+struct sequencer_key_data
+{
+   int Start; 
+   int End;
+   int Type; 
+   unsigned int Color; 
+   sequencer_key_type::type KeyType;
+};
+
+struct sequencer_track_data
+{
+   int Start; 
+   int End; 
+   int Type; 
+   unsigned int Color;
+};
+
 namespace ImSequencer
 {
    enum SEQUENCER_OPTIONS
@@ -46,14 +64,14 @@ namespace ImSequencer
       virtual const char* GetTrackTypeName(int /*typeIndex*/) const { return ""; }
       virtual const char* GetTrackLabel(int trackIdx) const { return ""; }
 
-      virtual void GetKey(int trackIdx, int index, int** start, int** end, int* type, unsigned int* color, sequencer_key_type::type* keyType) = 0;
-      virtual void GetTrack(int trackIdx, int** start, int** end, int* type, unsigned int* color) = 0;
+      virtual sequencer_key_data GetKeyData(int trackIdx, int index) = 0;
+      virtual sequencer_track_data GetTrackData(int trackIdx) = 0;
       virtual int AddTrack(int trackType) { return -1; }
       virtual void DeleteTrack(int trackIdx) {}
       virtual void DuplicateTrack(int trackIdx) {}
       virtual int AddKey(int trackIdx, int start, int end) { return -1; }
       virtual void DeleteKey(int trackIdx, int frameIdx) { }
-      virtual bool MoveKey(int trackIdx, int frameIdx, int newStart, int newEnd) { return false; }
+      virtual i32 MoveKey(int trackIdx, int frameIdx, int newStart, int newEnd) { return -1; }
 
       virtual void Copy() {}
       virtual void Paste() {}

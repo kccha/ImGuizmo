@@ -367,24 +367,24 @@ namespace ImSequencer
             int keyCount = sequence->GetKeyCount(trackIdx);
             for (int keyIdx = 0; keyIdx < keyCount; keyIdx++)
             {
-               int* keyStart = nullptr;
-               int* keyEnd = nullptr;
-               unsigned int keyColor = 0;
-               sequencer_key_type::type keyType = sequencer_key_type::key;
-               sequence->GetKey(trackIdx, keyIdx, &keyStart, &keyEnd, NULL, &keyColor, &keyType);
+               // int* keyStart = nullptr;
+               // int* keyEnd = nullptr;
+               // unsigned int keyColor = 0;
+               // sequencer_key_type::type keyType = sequencer_key_type::key;
+               sequencer_key_data keyData = sequence->GetKeyData(trackIdx, keyIdx);
                if (*selectedTrack == trackIdx && *selectedKey == keyIdx)
                {
-                  keyColor = keyColor | 0x0000DDDD;
+                  keyData.Color = keyData.Color | 0x0000DDDD;
 
                }
                // Calculate key rect
                ImVec2 pos = ImVec2(contentMin.x + legendWidth - firstFrameUsed * framePixelWidth, contentMin.y + TrackHeight * trackIdx + 1 + customHeight);
-               ImVec2 slotP1(pos.x + *keyStart * framePixelWidth, pos.y + 2);
-               ImVec2 slotP2(pos.x + *keyEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2);
+               ImVec2 slotP1(pos.x + keyData.Start * framePixelWidth, pos.y + 2);
+               ImVec2 slotP2(pos.x + keyData.End * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2);
                // To the end of the custom height
-               ImVec2 slotP3(pos.x + *keyEnd * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2 + localCustomHeight);
-               unsigned int slotColor = keyColor | 0xFF000000;
-               unsigned int slotColorHalf = (keyColor & 0xFFFFFF) | 0x40000000;
+               ImVec2 slotP3(pos.x + keyData.End * framePixelWidth + framePixelWidth, pos.y + TrackHeight - 2 + localCustomHeight);
+               unsigned int slotColor = keyData.Color | 0xFF000000;
+               unsigned int slotColorHalf = (keyData.Color & 0xFFFFFF) | 0x40000000;
 
                // Draw the frame rects
                if (slotP1.x <= (canvas_size.x + contentMin.x) && slotP2.x >= (contentMin.x + legendWidth))
@@ -408,7 +408,7 @@ namespace ImSequencer
                const unsigned int quadColor[] = { 0xFFFFFFFF, 0xFFFFFFFF, slotColor + (isTrackSelected ? 0 : 0x202020) };
                if (movingTrack == -1  && movingKey == -1 && (sequenceOptions & SEQUENCER_EDIT_STARTEND))// TODOFOCUS && backgroundRect.Contains(io.MousePos))
                {
-                  switch (keyType)
+                  switch (keyData.KeyType)
                   {
                   case sequencer_key_type::key:
                      {
@@ -486,9 +486,7 @@ namespace ImSequencer
                int diffFrame = int((cx - movingPos) / framePixelWidth);
                if (std::abs(diffFrame) > 0)
                {
-                  int* start, * end;
-                  sequencer_key_type::type keyType = sequencer_key_type::key;
-                  sequence->GetKey(movingTrack, movingKey, &start, &end, NULL, NULL, &keyType);
+                  sequencer_key_data keyData = sequence->GetKeyData(movingTrack, movingKey);
 
                   if (selectedTrack)
                   {
@@ -499,8 +497,8 @@ namespace ImSequencer
                      *selectedKey = movingKey;
                   }
 
-                  int l = *start;
-                  int r = *end;
+                  int l = keyData.Start;
+                  int r = keyData.End;
                   if (movingPart & 1)
                      l += diffFrame;
                   if (movingPart & 2)
@@ -516,11 +514,11 @@ namespace ImSequencer
                   if (movingPart & 2 && r < l)
                      r = l;
 
-                  if (keyType == sequencer_key_type::key)
+                  if (keyData.KeyType == sequencer_key_type::key)
                   {
                      r = l;
                   }
-                  sequence->MoveKey(movingTrack, movingKey, l, r);
+                  movingKey = sequence->MoveKey(movingTrack, movingKey, l, r);
                   movingPos += int(diffFrame * framePixelWidth);
                }
                if (!io.MouseDown[0])
