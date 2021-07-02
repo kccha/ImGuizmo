@@ -70,6 +70,7 @@ namespace ImSequencer
       virtual void DeleteTrack(int trackIdx) {}
       virtual void DuplicateTrack(int trackIdx) {}
       virtual int AddKey(int trackIdx, int start, int end) { return -1; }
+      virtual int DuplicateKey(int trackIdx, int frameIdx) { return -1; }
       virtual void DeleteKey(int trackIdx, int frameIdx) { }
       virtual i32 MoveKey(int trackIdx, int frameIdx, int newStart, int newEnd) { return -1; }
 

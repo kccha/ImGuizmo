@@ -790,7 +790,8 @@ namespace ImSequencer
 
       if (trackToAddKeyIdx != -1)
       {
-         sequence->AddKey(trackToAddKeyIdx, 0, 0);
+         *selectedTrack = trackToAddKeyIdx;
+         *selectedKey = sequence->AddKey(trackToAddKeyIdx, 0, 0);
       }
 
       if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedKey >= 0)
@@ -806,6 +807,14 @@ namespace ImSequencer
       if (ImGui::IsKeyReleased(VK_SPACE) && *selectedTrack >= 0 && mouseFrame >= 0)
       {
          *selectedKey = sequence->AddKey(*selectedTrack, mouseFrame, mouseFrame);
+         movingTrack = -1;
+         movingKey = -1;
+      }
+
+      if (ImGui::IsKeyReleased(VK_MENU) && *selectedTrack >= 0 && *selectedKey >= 0)
+      {
+         *selectedKey = sequence->DuplicateKey(*selectedTrack, *selectedKey);
+
          movingTrack = -1;
          movingKey = -1;
       }
