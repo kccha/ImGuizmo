@@ -220,6 +220,7 @@ namespace ImSequencer
                   {
                      int newTrack = sequence->AddTrack(i);
                      *selectedTrack = newTrack;
+                     *selectedKey = -1;
                   }
                }
 
