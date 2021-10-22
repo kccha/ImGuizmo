@@ -868,11 +868,13 @@ namespace ImSequencer
       if (moveUpTrackIdx != -1)
       {
          *selectedTrack = sequence->MoveTrackUp(moveUpTrackIdx);
+         *selectedKey = -1;
       }
 
       if (moveDownTrackIdx != -1)
       {
          *selectedTrack = sequence->MoveTrackDown(moveDownTrackIdx);
+         *selectedKey = -1;
       }
 
       if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedKey >= 0)
