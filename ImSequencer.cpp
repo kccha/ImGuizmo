@@ -53,6 +53,58 @@ namespace ImSequencer
       return overDel;
    }
 
+   static bool SequencerMoveUpButton(ImDrawList* draw_list, ImVec2 pos)
+   {
+      ImGuiIO& io = ImGui::GetIO();
+      ImRect rect(pos, ImVec2(pos.x + 16, pos.y + 16));
+      bool overDel = rect.Contains(io.MousePos);
+      int delColor = overDel ? 0xFFAAAAAA : 0xF0000000;
+      float midy = pos.y + 16 / 2 - 0.5f;
+      float midx = pos.x + 16 / 2 - 0.5f;
+      float topY = rect.Min.y + 3;
+      float baseY = rect.Max.y - 4;
+      draw_list->AddRect(rect.Min, rect.Max, delColor, 4);
+      draw_list->AddLine(ImVec2(rect.Min.x + 3, baseY), ImVec2(midx, topY), delColor, 2);
+      draw_list->AddLine(ImVec2(rect.Max.x - 3, baseY), ImVec2(midx, topY), delColor, 2);
+      return overDel;
+   }
+
+   static bool SequencerMoveDownButton(ImDrawList* draw_list, ImVec2 pos)
+   {
+      ImGuiIO& io = ImGui::GetIO();
+      ImRect rect(pos, ImVec2(pos.x + 16, pos.y + 16));
+      bool overDel = rect.Contains(io.MousePos);
+      int delColor = overDel ? 0xFFAAAAAA : 0xF0000000;
+      float midy = pos.y + 16 / 2 - 0.5f;
+      float midx = pos.x + 16 / 2 - 0.5f;
+      float topY = rect.Min.y + 3;
+      float baseY = rect.Max.y - 4;
+      draw_list->AddRect(rect.Min, rect.Max, delColor, 4);
+
+      draw_list->AddLine(ImVec2(rect.Min.x + 3, topY), ImVec2(midx, baseY), delColor, 2);
+      draw_list->AddLine(ImVec2(rect.Max.x - 3, topY), ImVec2(midx, baseY), delColor, 2);
+      return overDel;
+   }
+
+   struct next_button_data
+   {
+      float ButtonX;
+      float ButtonY;
+      float TrackHeight;
+      int NextButtonIdx;
+   };
+
+   next_button_data GetNextButtonData(float baseX, float baseY, int buttonIdx, float trackHeight)
+   {
+      next_button_data result = {};
+      result.ButtonX = baseX - buttonIdx * trackHeight;
+      result.ButtonY = baseY;
+      result.NextButtonIdx = buttonIdx + 1;
+      result.TrackHeight = trackHeight;
+
+      return result;
+   }
+
    bool Sequencer(SequenceInterface* sequence, int* currentFrame, bool* expanded, int* selectedTrack, int* selectedKey, int* firstFrame, int sequenceOptions)
    {
       int TrackSelectionBackgroundColor = 0x801080FF;
@@ -62,7 +114,7 @@ namespace ImSequencer
       int cy = (int)(io.MousePos.y);
       static float framePixelWidth = 10.f;
       static float framePixelWidthTarget = 10.f;
-      int legendWidth = 300;
+      int legendWidth = 400;
 
       static int movingTrack = -1;
       static int movingKey = -1;
@@ -71,6 +123,8 @@ namespace ImSequencer
       int delTrackIdx = -1;
       int dupTrackIdx = -1;
       int trackToAddKeyIdx = -1;
+      int moveUpTrackIdx = -1;
+      int moveDownTrackIdx = -1;
       int TrackHeight = 20;
       int mouseFrame = -1;
 
@@ -294,17 +348,33 @@ namespace ImSequencer
 
             if (sequenceOptions & SEQUENCER_DEL)
             {
-               bool overDel = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight + 2 - 10, tpos.y + 2), false);
+               
+               float baseX = contentMin.x + legendWidth - TrackHeight + 2 - 10;
+               float baseY = tpos.y + 2;
+               next_button_data nextButtonData = GetNextButtonData(baseX, baseY, 0, TrackHeight);
+               bool overDel = SequencerAddDelButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), false);
                if (overDel && io.MouseReleased[0])
                   delTrackIdx = i;
 
-               bool overDup = SequencerCopyButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight - 2 * TrackHeight + 2 - 10, tpos.y + 2), true);
-               if (overDup && io.MouseReleased[0])
-                  dupTrackIdx = i;
-
-               bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(contentMin.x + legendWidth - TrackHeight - TrackHeight + 2 - 10, tpos.y + 2), true);
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight);
+               bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), true);
                if (overAddFrame && io.MouseReleased[0])
                   trackToAddKeyIdx = i;
+
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight);
+               bool overMoveDown = SequencerMoveDownButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY));
+               if (overMoveDown && io.MouseReleased[0])
+                  moveDownTrackIdx = i;
+
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight);
+               bool overMoveUp = SequencerMoveUpButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY));
+               if (overMoveUp && io.MouseReleased[0])
+                  moveUpTrackIdx = i;
+
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight);
+               bool overDup = SequencerCopyButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), true);
+               if (overDup && io.MouseReleased[0])
+                  dupTrackIdx = i;
             }
             customHeight += sequence->GetCustomTrackHeight(i);
          }
@@ -793,6 +863,16 @@ namespace ImSequencer
       {
          *selectedTrack = trackToAddKeyIdx;
          *selectedKey = sequence->AddKey(trackToAddKeyIdx, 0, 0);
+      }
+
+      if (moveUpTrackIdx != -1)
+      {
+         *selectedTrack = sequence->MoveTrackUp(moveUpTrackIdx);
+      }
+
+      if (moveDownTrackIdx != -1)
+      {
+         *selectedTrack = sequence->MoveTrackDown(moveDownTrackIdx);
       }
 
       if (ImGui::IsKeyReleased(VK_DELETE) && *selectedTrack >= 0 && *selectedKey >= 0)
