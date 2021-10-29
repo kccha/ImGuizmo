@@ -76,6 +76,9 @@ namespace ImSequencer
       virtual void DeleteKey(int trackIdx, int frameIdx) { }
       virtual i32 MoveKey(int trackIdx, int frameIdx, int newStart, int newEnd) { return -1; }
 
+      virtual void SetTrackActive(int inTrackIdx, bool inIsActive) { }
+      virtual bool IsTrackActive(int trackIdx) const { return true; }
+
       virtual void Copy() {}
       virtual void Paste() {}
 
