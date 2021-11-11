@@ -156,8 +156,6 @@ namespace ImSequencer
 
       bool popupOpened = false;
       int trackCount = sequence->GetTrackCount();
-      if (!trackCount)
-         return false;
       ImGui::BeginGroup();
 
       ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -171,6 +169,12 @@ namespace ImSequencer
       {
          controlHeight += int(sequence->GetCustomTrackHeight(i));
       }
+      // This prevents a crash if we have 0 tracks.
+      if (controlHeight == 0)
+      {
+         controlHeight = 1 * TrackHeight; 
+      }
+
       int frameCount = ImMax(sequence->GetFrameMax() - sequence->GetFrameMin(), 1);
 
       static bool MovingScrollBar = false;
