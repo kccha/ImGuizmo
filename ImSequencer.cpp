@@ -933,6 +933,13 @@ namespace ImSequencer
          movingTrack = -1;
          movingKey = -1;
       }
+      if (ImGui::IsKeyReleased(VK_ESCAPE))
+      {
+         *selectedTrack = -1;
+         *selectedKey = -1;
+         movingTrack = -1;
+         movingKey = -1;
+      }
 
       if (ImGui::IsKeyReleased(VK_MENU) && *selectedTrack >= 0 && *selectedKey >= 0)
       {
