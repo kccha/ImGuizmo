@@ -902,7 +902,7 @@ namespace ImSequencer
       if (trackToAddKeyIdx != -1)
       {
          *selectedTrack = trackToAddKeyIdx;
-         *selectedKey = sequence->AddKey(trackToAddKeyIdx, 0, 0);
+         *selectedKey = sequence->AddKey(trackToAddKeyIdx, -1, 0);
       }
 
       if (moveUpTrackIdx != -1)
@@ -929,7 +929,7 @@ namespace ImSequencer
 
       if (ImGui::IsKeyReleased(VK_SPACE) && *selectedTrack >= 0 && mouseFrame >= 0)
       {
-         *selectedKey = sequence->AddKey(*selectedTrack, mouseFrame, mouseFrame);
+         *selectedKey = sequence->AddKey(*selectedTrack, *selectedKey, mouseFrame);
          movingTrack = -1;
          movingKey = -1;
       }
