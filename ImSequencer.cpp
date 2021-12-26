@@ -1,10 +1,16 @@
 #include "ImSequencer.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "Utility.h"
 #include <cstdlib>
 #include <windows.h>
 
+#ifndef MAX
+#define MAX(a,b) (((a) >= (b)) ? (a) : (b))
+#endif 
+
+#ifndef MIN
+#define MIN(a,b) (((a) <= (b)) ? (a) : (b))
+#endif 
 ImVec2 Min(ImVec2 a, ImVec2 b)
 {
    return ImVec2(MIN(a.x, b.x), MIN(a.y, b.y));
@@ -15,6 +21,11 @@ ImVec2 Max(ImVec2 a, ImVec2 b)
    return ImVec2(MAX(a.x, b.x), MAX(a.y, b.y));
 }
 
+#ifndef ArraySize
+#define ArraySize(array) (sizeof(array) / sizeof((array)[0]))
+#endif
+
+#define Clamp(a,min, max) (MAX(MIN(a, max), min))
 
 namespace ImSequencer
 {
@@ -367,7 +378,7 @@ namespace ImSequencer
 
 
          // Make is so that we don't scroll and overwrite the track header 
-         draw_list->PushClipRect(canvas_pos + ImVec2(0.0f, TrackHeight), canvas_pos + canvas_size);
+         draw_list->PushClipRect(canvas_pos + ImVec2(0.0f, (float)TrackHeight), canvas_pos + canvas_size);
 
          // draw item names in the legend rect on the left
          size_t customHeight = 0;
@@ -375,13 +386,13 @@ namespace ImSequencer
          {
             ImVec2 startButtonPos(contentMin.x + 3, contentMin.y + i * TrackHeight + 2 + customHeight);
 
-            next_button_data startButtonData = GetNextButtonData(startButtonPos.x, startButtonPos.y, 0, TrackHeight, false);
+            next_button_data startButtonData = GetNextButtonData(startButtonPos.x, startButtonPos.y, 0, (float)TrackHeight, false);
             bool overVisible = SequencerActiveButton(draw_list, ImVec2(startButtonData.ButtonX, startButtonData.ButtonY), sequence->IsTrackActive(i));
             if (overVisible && io.MouseReleased[0])
             {
                sequence->SetTrackActive(i, !sequence->IsTrackActive(i));
             }
-            startButtonData = GetNextButtonData(startButtonPos.x, startButtonPos.y, startButtonData.NextButtonIdx, TrackHeight, false);
+            startButtonData = GetNextButtonData(startButtonPos.x, startButtonPos.y, startButtonData.NextButtonIdx, (float)TrackHeight, false);
             ImVec2 startTextPos(startButtonData.ButtonX, startButtonData.ButtonY);
             draw_list->AddText(startTextPos, 0xFFFFFFFF, sequence->GetTrackLabel(i));
 
@@ -390,28 +401,28 @@ namespace ImSequencer
 
                float baseX = contentMin.x + legendWidth - TrackHeight + 2 - 10;
                float baseY = startTextPos.y + 2;
-               next_button_data nextButtonData = GetNextButtonData(baseX, baseY, 0, TrackHeight, true);
+               next_button_data nextButtonData = GetNextButtonData(baseX, baseY, 0, (float)TrackHeight, true);
                bool overDel = SequencerAddDelButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), false);
                if (overDel && io.MouseReleased[0])
                   delTrackIdx = i;
 
-               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight, true);
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, (float)TrackHeight, true);
                bool overAddFrame = SequencerAddDelButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), true);
                if (overAddFrame && io.MouseReleased[0])
                   trackToAddKeyIdx = i;
 
-               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight, true);
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, (float)TrackHeight, true);
                bool overMoveDown = SequencerMoveDownButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY));
                if (overMoveDown && io.MouseReleased[0])
                   moveDownTrackIdx = i;
 
-               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight, true);
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, (float)TrackHeight, true);
                bool overMoveUp = SequencerMoveUpButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY));
                if (overMoveUp && io.MouseReleased[0])
                   moveUpTrackIdx = i;
 
 
-               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, TrackHeight, true);
+               nextButtonData = GetNextButtonData(baseX, baseY, nextButtonData.NextButtonIdx, (float)TrackHeight, true);
                bool overDup = SequencerCopyButton(draw_list, ImVec2(nextButtonData.ButtonX, nextButtonData.ButtonY), true);
                if (overDup && io.MouseReleased[0])
                   dupTrackIdx = i;
